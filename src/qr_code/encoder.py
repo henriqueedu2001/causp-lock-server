@@ -27,7 +27,12 @@ class PrivateKeyTypes(Enum):
     ACCESS_KEY = 1
     SYNC_KEY = 2
     CONFIG_KEY = 3
-    
+
+
+class PayloadEncoder:
+    def __init__(self):
+        pass
+
 
 class PayloadHeaderEncoder:
     def get_header(message_type: Union[MessageTypes, int], operation: Union[OperationTypes, int]) -> bytes:
@@ -53,9 +58,80 @@ class PayloadHeaderEncoder:
 
 
 class PayloadBodyEncoder:
-    def __init__(self, **kwargs):
-        # TODO
-        return
+    def get_body(**kwargs) -> bytes:
+        """Generates the payload body depending on the `message_type` specified in kwargs.
+
+        The content of the body varies depending on the value of `message_type`:
+        
+        - For `MessageTypes.ACCESS`, provide:
+            - `user_id` (int)
+            - `generated_at` (datetime)
+        - For `MessageTypes.SYNC`, provide:
+            - `sync_time` (datetime)
+        - For `MessageTypes.CONFIG`, provide:
+            - `new_key` (str)
+        - For `MessageTypes.DEBUG`, provide:
+            - `debug_data` (str)
+
+        Args:
+            **kwargs: Arbitrary keyword arguments including:
+                message_type (MessageTypes): The type of message.
+                operation (OperationTypes, optional): Operation type, used for access messages.
+                user_id (int, optional): User ID (required for ACCESS).
+                generated_at (datetime, optional): Timestamp (required for ACCESS).
+                sync_time (datetime, optional): Timestamp (required for SYNC).
+                new_key (str, optional): New configuration key (required for CONFIG).
+                debug_data (str, optional): Debug payload (required for DEBUG).
+
+        Returns:
+            bytes: The encoded payload body.
+
+        Examples:
+            >>> PayloadBodyEncoder.get_body(
+            ...     message_type=MessageTypes.ACCESS,
+            ...     operation=OperationTypes.CHECK_IN,
+            ...     user_id=1902489364,
+            ...     generated_at=datetime(2025, 5, 10, 21, 30)
+            ... )
+            b'qe\\xaf\\x14\\x00\\x00\\x00\\x00h\\x1f\\xef\\x88'
+
+            >>> PayloadBodyEncoder.get_body(
+            ...     message_type=MessageTypes.SYNC,
+            ...     sync_time=datetime(2025, 5, 10, 21, 30)
+            ... )
+            b'\\x00\\x00\\x00\\x00h\\x1f\\xef\\x88'
+
+            >>> PayloadBodyEncoder.get_body(
+            ...     message_type=MessageTypes.CONFIG,
+            ...     new_key='01 02 03 04 AA BB CC DD'
+            ... )
+            b'\\x00...\\xdd'
+
+            >>> PayloadBodyEncoder.get_body(
+            ...     message_type=MessageTypes.DEBUG,
+            ...     debug_data='AA BB CC DD FF FF FF FF'
+            ... )
+            b'\\x00...\\xff'
+        """
+
+        message_type: Union[MessageTypes, int] = kwargs.get('message_type')
+        
+        body = None
+        if message_type == MessageTypes.ACCESS:
+            user_id: int = kwargs.get('user_id')
+            generated_at: datetime = kwargs.get('generated_at')
+            body = PayloadBodyEncoder.get_access_body(user_id=user_id, generated_at=generated_at)
+        elif message_type == MessageTypes.SYNC:
+            sync_time: datetime = kwargs.get('sync_time')
+            body = PayloadBodyEncoder.get_sync_body(sync_time=sync_time)
+        elif message_type == MessageTypes.CONFIG:
+            new_key: str = kwargs.get('new_key')
+            body = PayloadBodyEncoder.get_config_body(new_key=new_key)
+        elif message_type == MessageTypes.DEBUG:
+            debug_data: str = kwargs.get('debug_data')
+            body = PayloadBodyEncoder.get_debug_body(debug_data=debug_data)
+        
+        return body
     
     
     def get_access_body(user_id: int, generated_at: datetime) -> bytes:
