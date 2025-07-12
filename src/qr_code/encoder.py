@@ -12,14 +12,16 @@ class MessageTypes(Enum):
 
 
 class OperationTypes(Enum):
-    CHECK_IN = 0
-    CHECK_OUT = 1
-    SET_MASTER_KEY = 2
-    SET_CONFIG_KEY = 3
-    SET_SYNC_KEY = 4
-    SET_ACCESS_KEY = 5
-    DEBUG_BLINK = 6
-    DEBUG_SYNC = 7
+    NONE = 0
+    CHECK_IN = 1
+    CHECK_OUT = 2
+    SYNC = 3
+    SET_MASTER_KEY = 4
+    SET_CONFIG_KEY = 5
+    SET_SYNC_KEY = 6
+    SET_ACCESS_KEY = 7
+    DEBUG_BLINK = 8
+    DEBUG_SYNC = 9
     
 
 class PrivateKeyTypes(Enum):
@@ -30,8 +32,265 @@ class PrivateKeyTypes(Enum):
 
 
 class PayloadEncoder:
-    def __init__(self):
-        pass
+    def get_check_in_payload(user_id: int, generated_at: datetime, access_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for the check-in.
+
+        Args:
+            user_id (int): the user id
+            generated_at (datetime): the generated_at timestamp
+            access_key (Union[SecretKey, str]): the secret access key
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.ACCESS
+        operation = OperationTypes.CHECK_IN
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            user_id=user_id,
+            generated_at=generated_at
+        )
+        hash = PayloadHashEncoder.get_hash(header, body, access_key)
+        payload = header + body + hash
+        
+        return payload
+    
+    
+    def get_check_out_payload(user_id: int, generated_at: datetime, access_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for the check-out.
+
+        Args:
+            user_id (int): the user id
+            generated_at (datetime): the generated_at timestamp
+            access_key (Union[SecretKey, str]): the secret access key
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.ACCESS
+        operation = OperationTypes.CHECK_OUT
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            user_id=user_id,
+            generated_at=generated_at
+        )
+        hash = PayloadHashEncoder.get_hash(header, body, access_key)
+        payload = header + body + hash
+        
+        return payload
+    
+    
+    def get_sync_payload(sync_time: datetime, sync_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for inner time sync.
+
+        Args:
+            sync_time (datetime): the sync time
+            sync_key (Union[SecretKey, str]): the secret sync key
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.SYNC
+        operation = OperationTypes.NONE
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            sync_time=sync_time
+        )
+        hash = PayloadHashEncoder.get_hash(header, body, sync_key)
+        payload = header + body + hash
+        
+        return payload
+    
+    
+    def get_set_master_key_payload(new_master_key: str, old_master_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for setting a new master key.
+
+        Args:
+            new_master_key (str): the new secret master key
+            old_master_key (Union[SecretKey, str]): the old secret master key
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.CONFIG
+        operation = OperationTypes.SET_MASTER_KEY
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            new_key=new_master_key
+        )
+        hash = PayloadHashEncoder.get_hash(header, body, old_master_key)
+        payload = header + body + hash
+        
+        return payload
+    
+    
+    def get_set_access_key_payload(new_access_key: str, config_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for setting a new access key.
+
+        Args:
+            new_access_key (str): the new secret access key
+            config_key (Union[SecretKey, str]): the secret config key
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.CONFIG
+        operation = OperationTypes.SET_ACCESS_KEY
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            new_key=new_access_key
+        )
+        hash = PayloadHashEncoder.get_hash(header, body, config_key)
+        payload = header + body + hash
+        
+        return payload
+    
+    
+    def get_set_sync_key_payload(new_sync_key: str, config_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for setting a new sync key.
+
+        Args:
+            new_sync_key (str): the new secret sync key
+            config_key (Union[SecretKey, str]): the secret config key
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.CONFIG
+        operation = OperationTypes.SET_SYNC_KEY
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            new_key=new_sync_key
+        )
+        hash = PayloadHashEncoder.get_hash(header, body, config_key)
+        payload = header + body + hash
+        
+        return payload
+    
+    
+    def get_set_config_key_payload(new_config_key: str, master_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for setting a new config key.
+
+        Args:
+            new_config_key (str): the new secret config key
+            master_key (Union[SecretKey, str]): the secret master key
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.CONFIG
+        operation = OperationTypes.SET_CONFIG_KEY
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            new_key=new_config_key
+        )
+        hash = PayloadHashEncoder.get_hash(header, body, master_key)
+        payload = header + body + hash
+        
+        return payload
+    
+    
+    def get_debug_blink_payload(blink_num: str) -> bytes:
+        """Generates the QR Code payload for the n-blink test.
+
+        Args:
+            blink_num (str): the number of blinks per read
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.DEBUG
+        operation = OperationTypes.DEBUG_BLINK
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            debug_data=blink_num
+        )
+        payload = header + body
+        
+        return payload
+    
+    
+    def get_debug_sync_payload(current_time: datetime) -> bytes:
+        """Generates the QR Code payload for the sync test.
+
+        Args:
+            current_time (datetime): the current datetime
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.DEBUG
+        operation = OperationTypes.DEBUG_SYNC
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            debug_data=current_time
+        )
+        payload = header + body
+        
+        return payload
 
 
 class PayloadHeaderEncoder:
@@ -69,9 +328,9 @@ class PayloadBodyEncoder:
         - For `MessageTypes.SYNC`, provide:
             - `sync_time` (datetime)
         - For `MessageTypes.CONFIG`, provide:
-            - `new_key` (str)
+            - `new_key` (Union[str, SecretKey])
         - For `MessageTypes.DEBUG`, provide:
-            - `debug_data` (str)
+            - `debug_data` (Union[str, datetime])
 
         Args:
             **kwargs: Arbitrary keyword arguments including:
@@ -80,8 +339,8 @@ class PayloadBodyEncoder:
                 user_id (int, optional): User ID (required for ACCESS).
                 generated_at (datetime, optional): Timestamp (required for ACCESS).
                 sync_time (datetime, optional): Timestamp (required for SYNC).
-                new_key (str, optional): New configuration key (required for CONFIG).
-                debug_data (str, optional): Debug payload (required for DEBUG).
+                new_key (Union[str, SecretKey], optional): New configuration key (required for CONFIG).
+                debug_data (Union[str, datetime], optional): Debug payload (required for DEBUG).
 
         Returns:
             bytes: The encoded payload body.
@@ -113,7 +372,6 @@ class PayloadBodyEncoder:
             ... )
             b'\\x00...\\xff'
         """
-
         message_type: Union[MessageTypes, int] = kwargs.get('message_type')
         
         body = None
@@ -125,10 +383,10 @@ class PayloadBodyEncoder:
             sync_time: datetime = kwargs.get('sync_time')
             body = PayloadBodyEncoder.get_sync_body(sync_time=sync_time)
         elif message_type == MessageTypes.CONFIG:
-            new_key: str = kwargs.get('new_key')
+            new_key: Union[str, SecretKey] = kwargs.get('new_key')
             body = PayloadBodyEncoder.get_config_body(new_key=new_key)
         elif message_type == MessageTypes.DEBUG:
-            debug_data: str = kwargs.get('debug_data')
+            debug_data: Union[str, datetime] = kwargs.get('debug_data')
             body = PayloadBodyEncoder.get_debug_body(debug_data=debug_data)
         
         return body
@@ -166,42 +424,63 @@ class PayloadBodyEncoder:
         return body
     
     
-    def get_config_body(new_key: str) -> bytes:
+    def get_config_body(new_key: Union[str, SecretKey]) -> bytes:
         """Generates the payload config body, with the new_key
         encoded with 16 bytes.
 
         Args:
-            new_key (str): the new key
+            new_key (Union[str, SecretKey]): the new key
 
         Returns:
             bytes: the encoded config payload body
         """
-        new_key_bytes = bytes.fromhex(new_key)
-        new_key_bytes = BinaryEncoder.encode_hex_str(new_key)
-        body = new_key_bytes
+        body = None
+        if type(new_key) == str:
+            new_key_bytes = bytes.fromhex(new_key)
+            new_key_bytes = BinaryEncoder.encode_hex_str(new_key)
+            body = new_key_bytes
+        elif type(new_key) == SecretKey:
+            body = new_key.value
+        
         return body
     
     
     def get_debug_body(
-        debug_data: Union[bytes, str],
+        debug_data: Union[bytes, str, datetime, int],
         length: int = 32,
         byte_order: Literal['little', 'big'] = 'big'
     ) -> bytes:
         """Generates the debug payload body, with an array of 32 bytes.
 
         Args:
-            debug_data (Union[bytes, str]): the debug data
+            debug_data (Union[bytes, str, datetime, int]): the debug data
             length (int, optional): the length of the bytes array. Defaults to 32.
             byte_order (Literal['little', 'big'], optional): the endianness of the array of bytes. Defaults to 'big'.
 
         Returns:
             bytes: the encoded debug data
         """
-        debug_bytes = BinaryEncoder.encode_hex_str(
-            input_hex_str=debug_data,
-            length=length,
-            byte_order=byte_order
-        ) if type(debug_data) == str else debug_data
+        debug_bytes = None
+        
+        if type(debug_data) == str:
+            debug_bytes = BinaryEncoder.encode_hex_str(
+                input_hex_str=debug_data,
+                length=length,
+                byte_order=byte_order
+            )
+        elif type(debug_data) == int:
+            debug_bytes = BinaryEncoder.encode_int(
+                input_int=debug_data,
+                length=4,
+                byte_order=byte_order
+            )
+        elif type(debug_data) == datetime:
+            debug_bytes = BinaryEncoder.encode_time(
+                time=debug_data,
+                length=8,
+                byte_order=byte_order
+            )
+            
         return debug_bytes
     
 
