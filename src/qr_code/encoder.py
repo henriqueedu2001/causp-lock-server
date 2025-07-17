@@ -4,27 +4,27 @@ from datetime import datetime
 from auth.secret_key import SecretKey
 from auth.signer import Signer
 
-class MessageTypes(Enum):
+class MessageTypes:
     ACCESS = 0
     SYNC = 1
     CONFIG = 2
     DEBUG = 3
 
 
-class OperationTypes(Enum):
-    NONE = 0
-    CHECK_IN = 1
-    CHECK_OUT = 2
-    SYNC = 3
-    SET_MASTER_KEY = 4
-    SET_CONFIG_KEY = 5
-    SET_SYNC_KEY = 6
-    SET_ACCESS_KEY = 7
-    DEBUG_BLINK = 8
-    DEBUG_SYNC = 9
+class OperationTypes:
+    CHECK_IN = 0
+    CHECK_OUT = 1
+    BI_ACCESS = 2
+    SET_TIME = 0
+    SET_MASTER_KEY = 0
+    SET_CONFIG_KEY = 1
+    SET_SYNC_KEY = 2
+    SET_ACCESS_KEY = 3
+    BLINK_N_TIMES = 0
+    BLINK_IF_SYNC = 1
     
 
-class PrivateKeyTypes(Enum):
+class PrivateKeyTypes:
     MASTER_KEY = 0
     ACCESS_KEY = 1
     SYNC_KEY = 2
@@ -94,8 +94,39 @@ class PayloadEncoder:
         return payload
     
     
-    def get_sync_payload(sync_time: datetime, sync_key: Union[SecretKey, str]) -> bytes:
-        """Generates the QR Code payload for inner time sync.
+    def get_bi_access_payload(user_id: int, generated_at: datetime, access_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for the bi access.
+
+        Args:
+            user_id (int): the user id
+            generated_at (datetime): the generated_at timestamp
+            access_key (Union[SecretKey, str]): the secret access key
+
+        Returns:
+            bytes: the payload
+        """
+        message_type = MessageTypes.ACCESS
+        operation = OperationTypes.BI_ACCESS
+        
+        # encoding
+        header = PayloadHeaderEncoder.get_header(
+            message_type=message_type,
+            operation=operation
+        )
+        body = PayloadBodyEncoder.get_body(
+            message_type=message_type,
+            operation=operation,
+            user_id=user_id,
+            generated_at=generated_at
+        )
+        hash = PayloadHashEncoder.get_hash(header, body, access_key)
+        payload = header + body + hash
+        
+        return payload
+    
+    
+    def get_set_time_payload(sync_time: datetime, sync_key: Union[SecretKey, str]) -> bytes:
+        """Generates the QR Code payload for time sync.
 
         Args:
             sync_time (datetime): the sync time
@@ -105,7 +136,7 @@ class PayloadEncoder:
             bytes: the payload
         """
         message_type = MessageTypes.SYNC
-        operation = OperationTypes.NONE
+        operation = OperationTypes.SET_TIME
         
         # encoding
         header = PayloadHeaderEncoder.get_header(
@@ -239,8 +270,8 @@ class PayloadEncoder:
         return payload
     
     
-    def get_debug_blink_payload(blink_num: str) -> bytes:
-        """Generates the QR Code payload for the n-blink test.
+    def get_blink_n_times_payload(blink_num: str) -> bytes:
+        """Generates the QR Code payload for the blink-n-times test.
 
         Args:
             blink_num (str): the number of blinks per read
@@ -249,7 +280,7 @@ class PayloadEncoder:
             bytes: the payload
         """
         message_type = MessageTypes.DEBUG
-        operation = OperationTypes.DEBUG_BLINK
+        operation = OperationTypes.BLINK_N_TIMES
         
         # encoding
         header = PayloadHeaderEncoder.get_header(
@@ -276,7 +307,7 @@ class PayloadEncoder:
             bytes: the payload
         """
         message_type = MessageTypes.DEBUG
-        operation = OperationTypes.DEBUG_SYNC
+        operation = OperationTypes.BLINK_IF_SYNC
         
         # encoding
         header = PayloadHeaderEncoder.get_header(
@@ -477,7 +508,7 @@ class PayloadBodyEncoder:
         elif type(debug_data) == datetime:
             debug_bytes = BinaryEncoder.encode_time(
                 time=debug_data,
-                length=8,
+                length=4,
                 byte_order=byte_order
             )
             
@@ -521,15 +552,15 @@ class BinaryEncoder:
     
     def encode_time(
         time: datetime,
-        length: int = 8,
+        length: int = 4,
         byte_order: Literal['little', 'big'] = 'big'
     ) -> bytes:
-        """Encodes a given timestamp in to bytes, representing the POSIX timestamp as an 64 bits integer,
+        """Encodes a given timestamp in to bytes, representing the POSIX timestamp as an 32 bits integer,
         by default.
 
         Args:
             time (datetime): the input timestamp
-            length (int, optional): the length of the bytes array. Defaults to 8.
+            length (int, optional): the length of the bytes array. Defaults to 4.
             byte_order (Literal['little', 'big'], optional): the endianness of the array of bytes. 
             Defaults to 'big'.
 
